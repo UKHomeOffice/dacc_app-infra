@@ -42,7 +42,7 @@ pipeline:
         include: [ push, pull_reqest ]
 
 
-# ---------------------- Deploy to Sandpit ----------------------
+#- ---------------------- Deploy to Sandpit ----------------------
   Plan Sandpit:
     image: docker.digital.homeoffice.gov.uk/dacc-aws-build/terragrunt-docker:2
     pull: true
