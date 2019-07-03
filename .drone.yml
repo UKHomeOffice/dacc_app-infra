@@ -1,0 +1,105 @@
+pipeline:
+
+# ---------------------- Init and Validate ----------------------
+  Init:
+    image: docker.digital.homeoffice.gov.uk/dacc-aws-build/terragrunt-docker:2
+    pull: true
+    environment:
+      - ENVIRONMENT=spt
+    secrets:
+      - GITLAB_SSH_KEY
+      - AWS_DEFAULT_REGION
+      - SANDPIT_AWS_ACCESS_KEY_ID
+      - SANDPIT_AWS_SECRET_ACCESS_KEY
+    commands:
+      - export ENVIRONMENT=$${ENVIRONMENT}
+      - export AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION}
+      - export AWS_ACCESS_KEY_ID=$${SANDPIT_AWS_ACCESS_KEY_ID}
+      - export AWS_SECRET_ACCESS_KEY=$${SANDPIT_AWS_SECRET_ACCESS_KEY}
+      - mkdir /root/.ssh && echo "$GITLAB_SSH_KEY" > /root/.ssh/id_rsa && chmod 0600 /root/.ssh/id_rsa
+      - ssh-keyscan -t rsa -p 2222 gitlab.digital.homeoffice.gov.uk >>  ~/.ssh/known_hosts
+      - AWS_DEFAULT_REGION=eu-west-2 terragrunt init --var-file=sandpit/terraform.tfvars
+    when:
+      branch:
+        include: [ feature/* ]
+      events:
+        include: [ push, pull_reqest ]
+
+
+  Format Check & Validate:
+    image: docker.digital.homeoffice.gov.uk/dacc-aws-build/terragrunt-docker:2
+    environment:
+      - ENVIRONMENT=spt
+    secrets:
+      - AWS_DEFAULT_REGION
+    commands:
+      - AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION} terraform fmt --diff --check
+      - AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION} terragrunt validate --var-file=${ENVIRONMENT}/terraform.tfvars
+    when:
+      branch:
+        include: [ feature/* ]
+      events:
+        include: [ push, pull_reqest ]
+
+
+# ---------------------- Deploy to Sandpit ----------------------
+  Plan Sandpit:
+    image: docker.digital.homeoffice.gov.uk/dacc-aws-build/terragrunt-docker:2
+    pull: true
+    environment:
+      - ENVIRONMENT=spt
+    secrets:
+      - GITLAB_SSH_KEY
+      - AWS_DEFAULT_REGION
+      - SANDPIT_AWS_ACCESS_KEY_ID
+      - SANDPIT_AWS_SECRET_ACCESS_KEY
+    commands:
+      - export ENVIRONMENT=$${ENVIRONMENT}
+      - export AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION}
+      - export AWS_ACCESS_KEY_ID=$${SANDPIT_AWS_ACCESS_KEY_ID}
+      - export AWS_SECRET_ACCESS_KEY=$${SANDPIT_AWS_SECRET_ACCESS_KEY}
+      - mkdir /root/.ssh && echo "$GITLAB_SSH_KEY" > /root/.ssh/id_rsa && chmod 0600 /root/.ssh/id_rsa
+      - ssh-keyscan -t rsa -p 2222 gitlab.digital.homeoffice.gov.uk >> /root/.ssh/known_hosts
+      - cd src/
+      - AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION} terragrunt plan -auto-approve -lock=false -out=plan --var-file=${ENVIRONMENT}/terraform.tfvars
+    when:
+      branch:
+        include: [ feature/* ]
+      events:
+        include: [ push, pull_reqest ]
+
+
+  Apply Sandpit:
+    image: docker.digital.homeoffice.gov.uk/dacc-aws-build/terragrunt-docker:2
+    pull: true
+    environment:
+      - ENVIRONMENT=spt
+    secrets:
+      - GITLAB_SSH_KEY
+      - AWS_DEFAULT_REGION
+      - SANDPIT_AWS_ACCESS_KEY_ID
+      - SANDPIT_AWS_SECRET_ACCESS_KEY
+    commands:
+      - export ENVIRONMENT=$${ENVIRONMENT}
+      - export AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION}
+      - export AWS_ACCESS_KEY_ID=$${SANDPIT_AWS_ACCESS_KEY_ID}
+      - export AWS_SECRET_ACCESS_KEY=$${SANDPIT_AWS_SECRET_ACCESS_KEY}
+      - mkdir /root/.ssh && echo "$GITLAB_SSH_KEY" > /root/.ssh/id_rsa && chmod 0600 /root/.ssh/id_rsa
+      - ssh-keyscan -t rsa -p 2222 gitlab.digital.homeoffice.gov.uk >> /root/.ssh/known_hosts
+      - cd src/
+      - terragrunt apply -auto-approve -parallelism=50 plan --var-file=${ENVIRONMENT}/terraform.tfvars
+    when:
+      branch:
+        include: [ feature/* ]
+      events:
+        include: [ push, pull_reqest ]
+
+
+# ---------------------- Deploy to Development ----------------------
+# - TODO -
+
+# ---------------------- Deploy to Model Office ----------------------
+# - TODO -
+
+# ---------------------- Deploy to Production ----------------------
+# - TODO -
