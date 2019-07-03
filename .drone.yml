@@ -1,6 +1,6 @@
 pipeline:
 
-# ---------------------- Init and Validate ----------------------
+#- ---------------------- Init and Validate ----------------------
   Init:
     image: docker.digital.homeoffice.gov.uk/dacc-aws-build/terragrunt-docker:2
     pull: true
